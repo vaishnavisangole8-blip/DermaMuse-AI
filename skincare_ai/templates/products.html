@@ -1,0 +1,1178 @@
+{% extends "base.html" %}
+
+{% block title %}Products – DermaMuse AI{% endblock %}
+
+{% block page_title %}🛒 Product Recommendations{% endblock %}
+
+{% block content %}
+
+<!-- =========================================================
+     CATEGORY NAVIGATION
+========================================================= -->
+
+<div class="card animate-in" style="margin-bottom:20px;padding:14px 20px;">
+
+    <div style="
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+        align-items:center;
+    ">
+
+        <a
+            href="{{ url_for('products.listing') }}"
+            class="category-btn {% if not selected_category %}active{% endif %}"
+        >
+            🧴 All Products
+        </a>
+
+        <a
+            href="{{ url_for('products.listing', category='Cleanser') }}"
+            class="category-btn {% if selected_category == 'Cleanser' %}active{% endif %}"
+        >
+            🧼 Cleansers
+        </a>
+
+        <a
+            href="{{ url_for('products.listing', category='Serum') }}"
+            class="category-btn {% if selected_category == 'Serum' %}active{% endif %}"
+        >
+            💧 Serums
+        </a>
+
+        <a
+            href="{{ url_for('products.listing', category='Moisturizer') }}"
+            class="category-btn {% if selected_category == 'Moisturizer' %}active{% endif %}"
+        >
+            🧴 Moisturizers
+        </a>
+
+        <a
+            href="{{ url_for('products.listing', category='Sunscreen') }}"
+            class="category-btn {% if selected_category == 'Sunscreen' %}active{% endif %}"
+        >
+            ☀️ Sunscreen
+        </a>
+
+        <a
+            href="{{ url_for('products.listing', category='Toner') }}"
+            class="category-btn {% if selected_category == 'Toner' %}active{% endif %}"
+        >
+            💦 Toners
+        </a>
+
+        <a
+            href="{{ url_for('products.listing', category='Exfoliator') }}"
+            class="category-btn {% if selected_category == 'Exfoliator' %}active{% endif %}"
+        >
+            ✨ Exfoliators
+        </a>
+
+        <a
+            href="{{ url_for('products.listing', category='Treatment') }}"
+            class="category-btn {% if selected_category == 'Treatment' %}active{% endif %}"
+        >
+            💊 Treatments
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     FILTER BAR
+========================================================= -->
+
+<div
+    class="card animate-in"
+    style="margin-bottom:20px;padding:16px 20px;"
+>
+
+    <div style="
+        display:flex;
+        gap:12px;
+        flex-wrap:wrap;
+        align-items:center;
+    ">
+
+        <span style="
+            font-size:13px;
+            font-weight:600;
+            color:var(--text-muted);
+        ">
+            Filter:
+        </span>
+
+
+        <select
+            id="filterCategory"
+            class="form-control"
+            style="width:auto;padding:7px 32px 7px 12px;"
+            onchange="filterProducts()"
+        >
+
+            <option value="">
+                All Categories
+            </option>
+
+            {% set cats = [
+                'Cleanser',
+                'Moisturizer',
+                'Sunscreen',
+                'Serum',
+                'Toner',
+                'Exfoliator',
+                'Treatment'
+            ] %}
+
+            {% for c in cats %}
+
+            <option
+                value="{{ c }}"
+                {% if selected_category == c %}
+                    selected
+                {% endif %}
+            >
+                {{ c }}
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <select
+            id="filterSkin"
+            class="form-control"
+            style="width:auto;padding:7px 32px 7px 12px;"
+            onchange="filterProducts()"
+        >
+
+            <option value="">
+                All Skin Types
+            </option>
+
+            {% for t in [
+                'Normal',
+                'Dry',
+                'Oily',
+                'Combination'
+            ] %}
+
+            <option value="{{ t }}">
+                {{ t }}
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <select
+            id="filterSort"
+            class="form-control"
+            style="width:auto;padding:7px 32px 7px 12px;"
+            onchange="filterProducts()"
+        >
+
+            <option value="score">
+                Sort: Best Match
+            </option>
+
+            <option value="price_asc">
+                Price: Low → High
+            </option>
+
+            <option value="price_desc">
+                Price: High → Low
+            </option>
+
+            <option value="rating">
+                Highest Rated
+            </option>
+
+        </select>
+
+
+        <span
+            id="filterCount"
+            style="
+                margin-left:auto;
+                font-size:13px;
+                color:var(--text-muted);
+            "
+        >
+            {{ all_products|length }} products
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     PAGE HEADING
+========================================================= -->
+
+<div
+    style="
+        margin-bottom:20px;
+        padding:4px 4px;
+    "
+>
+
+    {% if selected_category %}
+
+        <h2 style="
+            margin:0;
+            font-size:25px;
+            font-weight:700;
+        ">
+            {% if selected_category == 'Cleanser' %}
+                🧼 Cleansers
+            {% elif selected_category == 'Serum' %}
+                💧 Serums
+            {% elif selected_category == 'Moisturizer' %}
+                🧴 Moisturizers
+            {% elif selected_category == 'Sunscreen' %}
+                ☀️ Sunscreens
+            {% elif selected_category == 'Toner' %}
+                💦 Toners
+            {% elif selected_category == 'Exfoliator' %}
+                ✨ Exfoliators
+            {% elif selected_category == 'Treatment' %}
+                💊 Treatments
+            {% endif %}
+        </h2>
+
+        <p style="
+            margin:5px 0 0;
+            color:var(--text-muted);
+            font-size:14px;
+        ">
+            Showing only {{ selected_category }} products
+        </p>
+
+    {% else %}
+
+        <h2 style="
+            margin:0;
+            font-size:25px;
+            font-weight:700;
+        ">
+            🛍️ All Skincare Products
+        </h2>
+
+    {% endif %}
+
+</div>
+
+
+<!-- =========================================================
+     PERSONALIZED TOP PICKS
+========================================================= -->
+
+{% if recommended %}
+
+<div
+    class="card animate-in"
+    style="
+        margin-bottom:24px;
+        animation-delay:0.05s;
+    "
+>
+
+    <div class="card-header">
+
+        <span class="card-title">
+            ✨ Personalized Top Picks
+        </span>
+
+
+        {% if analysis %}
+
+        <span class="badge badge-primary">
+
+            For {{ analysis.skin_type }} skin
+            · ₹{{ analysis.budget }} budget
+
+        </span>
+
+        {% endif %}
+
+    </div>
+
+
+    <div style="
+        display:grid;
+        grid-template-columns:
+        repeat(auto-fill,minmax(220px,1fr));
+        gap:16px;
+    ">
+
+        {% for p in recommended %}
+
+        <div class="product-card">
+
+            <div class="product-rank">
+                #{{ loop.index }} Match
+            </div>
+
+
+            <span
+                class="badge badge-info"
+                style="
+                    font-size:10px;
+                    margin-bottom:10px;
+                    display:inline-block;
+                "
+            >
+                {{ p.category }}
+            </span>
+
+
+            <div class="product-name">
+                {{ p.name }}
+            </div>
+
+
+            <div class="product-brand">
+                {{ p.brand }}
+            </div>
+
+
+            <div class="product-price">
+                ₹{{ p.price }}
+            </div>
+
+
+            <!-- Scores -->
+
+            <div style="margin-bottom:12px;">
+
+                {% for label, val, c in [
+
+                    ('Skin Match',
+                     p.skin_match,
+                     '#e91e8c'),
+
+                    ('Concern',
+                     p.concern_match,
+                     '#7c4dff'),
+
+                    ('Budget',
+                     p.budget_match,
+                     '#4caf50')
+
+                ] %}
+
+                <div style="margin-bottom:6px;">
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        font-size:11px;
+                        margin-bottom:2px;
+                    ">
+
+                        <span style="
+                            color:var(--text-muted);
+                        ">
+                            {{ label }}
+                        </span>
+
+                        <span style="
+                            color:{{ c }};
+                            font-weight:600;
+                        ">
+                            {{ val }}%
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="progress-track"
+                        style="height:4px;"
+                    >
+
+                        <div
+                            class="progress-fill"
+                            style="
+                                width:{{ val }}%;
+                                --fill-start:{{ c }};
+                                --fill-end:{{ c }};
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- Rating -->
+
+            <div style="
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+            ">
+
+                <div class="rating-stars">
+
+                    {% for i in range(5) %}
+
+                        {{ '★' if i < p.rating|int else '☆' }}
+
+                    {% endfor %}
+
+                    <span style="
+                        font-size:11px;
+                        color:var(--text-muted);
+                    ">
+                        {{ p.rating }}
+                    </span>
+
+                </div>
+
+
+                <div style="
+                    background:
+                    linear-gradient(
+                        135deg,
+                        var(--primary),
+                        var(--secondary)
+                    );
+
+                    color:#fff;
+                    font-size:13px;
+                    font-weight:700;
+                    padding:4px 12px;
+                    border-radius:20px;
+                ">
+
+                    {{ p.final_score }}/100
+
+                </div>
+
+            </div>
+
+
+            {% if p.ingredients %}
+
+            <div style="
+                margin-top:10px;
+                font-size:11px;
+                color:var(--text-dark);
+            ">
+
+                🧪
+                {{ p.ingredients[:60] }}
+
+                {% if p.ingredients|length > 60 %}
+                    ...
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<!-- =========================================================
+     ALL PRODUCTS
+========================================================= -->
+
+<div
+    class="card animate-in"
+    style="animation-delay:0.1s;"
+>
+
+    <div class="card-header">
+
+        <span class="card-title">
+
+            {% if selected_category %}
+
+                {% if selected_category == 'Cleanser' %}
+                    🧼 Cleanser Products
+                {% elif selected_category == 'Moisturizer' %}
+                    🧴 Moisturizer Products
+                {% elif selected_category == 'Sunscreen' %}
+                    ☀️ Sunscreen Products
+                {% elif selected_category == 'Serum' %}
+                    💧 Serum Products
+                {% elif selected_category == 'Toner' %}
+                    💦 Toner Products
+                {% elif selected_category == 'Exfoliator' %}
+                    ✨ Exfoliator Products
+                {% elif selected_category == 'Treatment' %}
+                    💊 Treatment Products
+                {% endif %}
+
+            {% else %}
+
+                📦 All Products
+
+            {% endif %}
+
+        </span>
+
+
+        <a
+            href="{{ url_for('products.compare') }}"
+            class="btn btn-secondary btn-sm"
+        >
+            ⚖️ Compare Products
+        </a>
+
+    </div>
+
+
+    {% if all_products %}
+
+    <div
+        id="productsGrid"
+        style="
+            display:grid;
+            grid-template-columns:
+            repeat(auto-fill,minmax(200px,1fr));
+            gap:14px;
+        "
+    >
+
+        {% for p in all_products %}
+
+        <div
+            class="product-card product-item"
+
+            data-category="{{ p.category or '' }}"
+
+            data-skin="{{ p.skin_types or '' }}"
+
+            data-price="{{ p.price or 0 }}"
+
+            data-rating="{{ p.rating or 0 }}"
+        >
+
+
+            <!-- Category -->
+
+            <span
+                class="badge badge-info"
+                style="
+                    font-size:10px;
+                    margin-bottom:8px;
+                    display:inline-block;
+                "
+            >
+                {{ p.category }}
+            </span>
+
+
+            <!-- Product Name -->
+
+            <div
+                class="product-name"
+                style="font-size:13px;"
+            >
+                {{ p.name }}
+            </div>
+
+
+            <!-- Brand -->
+
+            <div
+                class="product-brand"
+                style="font-size:11px;"
+            >
+                {{ p.brand }}
+            </div>
+
+
+            <!-- Price -->
+
+            <div
+                class="product-price"
+                style="font-size:18px;"
+            >
+                ₹{{ p.price }}
+            </div>
+
+
+            <!-- Rating -->
+
+            <div
+                class="rating-stars"
+                style="font-size:12px;"
+            >
+
+                {% for i in range(5) %}
+
+                    {{ '★' if i < p.rating|int else '☆' }}
+
+                {% endfor %}
+
+                <span style="
+                    font-size:11px;
+                    color:var(--text-muted);
+                ">
+                    {{ p.rating }}
+                </span>
+
+            </div>
+
+
+            <!-- Skin Types -->
+
+            {% if p.skin_types %}
+
+            <div style="
+                margin-top:8px;
+                display:flex;
+                gap:4px;
+                flex-wrap:wrap;
+            ">
+
+                {% for st in p.skin_types.split(',') %}
+
+                <span
+                    class="badge badge-purple"
+                    style="font-size:9px;"
+                >
+                    {{ st.strip() }}
+                </span>
+
+                {% endfor %}
+
+            </div>
+
+            {% endif %}
+
+
+            <!-- Ingredients -->
+
+            {% if p.ingredients %}
+
+            <div style="
+                margin-top:10px;
+                font-size:10px;
+                color:var(--text-muted);
+            ">
+
+                🧪 {{ p.ingredients[:70] }}
+
+                {% if p.ingredients|length > 70 %}
+                    ...
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    {% else %}
+
+    <!-- No products -->
+
+    <div style="
+        text-align:center;
+        padding:60px 20px;
+    ">
+
+        <div style="
+            font-size:50px;
+            margin-bottom:15px;
+        ">
+            🧴
+        </div>
+
+        <h3>
+            No {{ selected_category or '' }} products found
+        </h3>
+
+        <p style="
+            color:var(--text-muted);
+        ">
+            Try another category.
+        </p>
+
+        <a
+            href="{{ url_for('products.listing') }}"
+            class="btn btn-primary"
+        >
+            View All Products
+        </a>
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+
+<!-- =========================================================
+     FORMULA EXPLANATION
+========================================================= -->
+
+{% if not selected_category %}
+
+<div
+    class="card animate-in"
+    style="
+        margin-top:20px;
+        animation-delay:0.15s;
+        background:
+        linear-gradient(
+            135deg,
+            rgba(124,77,255,0.08),
+            rgba(233,30,140,0.06)
+        );
+    "
+>
+
+    <div class="card-header">
+
+        <span class="card-title">
+            🧮 Compatibility Score Formula
+        </span>
+
+    </div>
+
+
+    <div style="
+        display:grid;
+        grid-template-columns:
+        repeat(auto-fit,minmax(180px,1fr));
+        gap:12px;
+    ">
+
+        {% for label, pct, desc, color in [
+
+            (
+                'Skin Match',
+                '40%',
+                'Matches your skin type',
+                '#e91e8c'
+            ),
+
+            (
+                'Concern Match',
+                '30%',
+                'Targets your concerns',
+                '#7c4dff'
+            ),
+
+            (
+                'Budget Match',
+                '20%',
+                'Fits your budget',
+                '#4caf50'
+            ),
+
+            (
+                'Rating',
+                '10%',
+                'Product rating (/5)',
+                '#ffc107'
+            )
+
+        ] %}
+
+        <div style="
+            background:var(--bg-card2);
+            border-radius:var(--radius-sm);
+            padding:14px;
+            border-left:3px solid {{ color }};
+            text-align:center;
+        ">
+
+            <div style="
+                font-size:22px;
+                font-weight:700;
+                color:{{ color }};
+            ">
+                {{ pct }}
+            </div>
+
+            <div style="
+                font-size:13px;
+                font-weight:600;
+                margin:4px 0;
+            ">
+                {{ label }}
+            </div>
+
+            <div style="
+                font-size:11px;
+                color:var(--text-muted);
+            ">
+                {{ desc }}
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    <div style="
+        margin-top:14px;
+        padding:12px;
+        background:var(--bg-card2);
+        border-radius:var(--radius-sm);
+        font-size:13px;
+        text-align:center;
+        color:var(--text-muted);
+    ">
+
+        <strong style="
+            color:var(--primary-light);
+        ">
+            Final Score
+        </strong>
+
+        =
+
+        0.40 × Skin Match
+        +
+
+        0.30 × Concern Match
+        +
+
+        0.20 × Budget Match
+        +
+
+        0.10 × Rating Score
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+<!-- =========================================================
+     STYLES
+========================================================= -->
+
+<style>
+
+.category-btn {
+
+    display:inline-flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    padding:9px 16px;
+
+    border-radius:22px;
+
+    border:1px solid var(--border);
+
+    background:var(--bg-card);
+
+    color:var(--text-dark);
+
+    text-decoration:none;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    transition:all .2s ease;
+
+}
+
+
+.category-btn:hover {
+
+    transform:translateY(-1px);
+
+    border-color:var(--primary);
+
+    color:var(--primary);
+
+}
+
+
+.category-btn.active {
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary),
+            var(--secondary)
+        );
+
+    color:#fff;
+
+    border-color:transparent;
+
+    box-shadow:
+        0 5px 15px
+        rgba(233,30,140,.20);
+
+}
+
+</style>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script>
+
+function filterProducts() {
+
+    const catElement =
+        document.getElementById(
+            'filterCategory'
+        );
+
+    const skinElement =
+        document.getElementById(
+            'filterSkin'
+        );
+
+    const sortElement =
+        document.getElementById(
+            'filterSort'
+        );
+
+
+    const cat =
+        catElement.value
+        .trim()
+        .toLowerCase();
+
+
+    const skin =
+        skinElement.value
+        .trim()
+        .toLowerCase();
+
+
+    const sort =
+        sortElement.value;
+
+
+    const items =
+        Array.from(
+            document.querySelectorAll(
+                '.product-item'
+            )
+        );
+
+
+    let visible = 0;
+
+
+    items.forEach(function(el) {
+
+        const elCat =
+            (
+                el.dataset.category || ''
+            )
+            .trim()
+            .toLowerCase();
+
+
+        const elSkin =
+            (
+                el.dataset.skin || ''
+            )
+            .trim()
+            .toLowerCase();
+
+
+        const matchCat =
+            !cat ||
+            elCat === cat;
+
+
+        const matchSkin =
+            !skin ||
+            elSkin.includes(skin);
+
+
+        if (
+            matchCat &&
+            matchSkin
+        ) {
+
+            el.style.display = '';
+
+            visible++;
+
+        } else {
+
+            el.style.display = 'none';
+
+        }
+
+    });
+
+
+    const grid =
+        document.getElementById(
+            'productsGrid'
+        );
+
+
+    if (grid) {
+
+        const visibleItems =
+            items.filter(
+                function(el) {
+
+                    return (
+                        el.style.display !==
+                        'none'
+                    );
+
+                }
+            );
+
+
+        visibleItems.sort(
+            function(a, b) {
+
+                if (
+                    sort ===
+                    'price_asc'
+                ) {
+
+                    return (
+                        Number(
+                            a.dataset.price
+                        ) -
+                        Number(
+                            b.dataset.price
+                        )
+                    );
+
+                }
+
+
+                if (
+                    sort ===
+                    'price_desc'
+                ) {
+
+                    return (
+                        Number(
+                            b.dataset.price
+                        ) -
+                        Number(
+                            a.dataset.price
+                        )
+                    );
+
+                }
+
+
+                if (
+                    sort ===
+                    'rating'
+                ) {
+
+                    return (
+                        Number(
+                            b.dataset.rating
+                        ) -
+                        Number(
+                            a.dataset.rating
+                        )
+                    );
+
+                }
+
+
+                return 0;
+
+            }
+        );
+
+
+        visibleItems.forEach(
+            function(el) {
+
+                grid.appendChild(el);
+
+            }
+        );
+
+    }
+
+
+    const count =
+        document.getElementById(
+            'filterCount'
+        );
+
+
+    if (count) {
+
+        count.textContent =
+            visible +
+            ' products';
+
+    }
+
+}
+
+
+/* =========================================================
+   CATEGORY SELECT CHANGE
+   ========================================================= */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function() {
+
+        const categorySelect =
+            document.getElementById(
+                'filterCategory'
+            );
+
+
+        if (
+            categorySelect &&
+            categorySelect.value
+        ) {
+
+            filterProducts();
+
+        }
+
+    }
+);
+
+</script>
+
+{% endblock %}
