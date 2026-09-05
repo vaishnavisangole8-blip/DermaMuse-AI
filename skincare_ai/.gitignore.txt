@@ -1,7 +1,5 @@
-<<<<<<< HEAD
 __pycache__/
 *.pyc
 .env
 venv/
 uploads/
-=======

@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}AI Chatbot – SkinCare AI{% endblock %}
+{% block page_title %}🤖 AI Skincare Chatbot{% endblock %}
+
+{% block content %}
+
+<div style="display:grid;grid-template-columns:1fr 320px;gap:20px;height:calc(100vh - 140px);">
+
+  <!-- ── Chat Window ─────────────────────────────────────── -->
+  <div style="display:flex;flex-direction:column;min-height:0;">
+
+    <div class="chat-container" style="height:100%;">
+      <!-- Messages -->
+      <div class="chat-messages" id="chatMessages">
+
+        <!-- Welcome message -->
+        <div class="message bot-msg">
+          <div class="msg-avatar">🧴</div>
+          <div>
+            <div class="msg-bubble">
+👋 Hello, {{ user_name }}! I'm your AI Skincare Assistant.
+
+I can help you with:
+• 🌞 Morning & 🌙 Night routines
+• 🛒 Product recommendations
+• 💰 Budget-friendly suggestions
+• 🧪 Ingredient information
+• ⚖️ Product comparisons
+
+What would you like to know?
+            </div>
+            <div class="msg-time">Just now</div>
+          </div>
+        </div>
+
+        <!-- History -->
+        {% for msg in history %}
+        <div class="message {{ 'user-msg' if msg.role == 'user' else 'bot-msg' }}">
+          <div class="msg-avatar">{{ '👤' if msg.role == 'user' else '🧴' }}</div>
+          <div>
+            <div class="msg-bubble">{{ msg.message }}</div>
+            <div class="msg-time">
+              {{ msg.created_at.strftime('%I:%M %p') if msg.created_at else '' }}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Quick Replies -->
+      <div class="quick-replies" id="quickReplies">
+        {% for qr in [
+          '🌞 Morning routine for oily skin',
+          '🌙 Night routine for dry skin',
+          '💧 What does Niacinamide do?',
+          '🛒 Best products under ₹1000',
+          '🔴 Products for acne',
+          '💆 Routine for sensitive skin',
+        ] %}
+        <button class="quick-reply-btn" onclick="sendQuick('{{ qr }}')">{{ qr }}</button>
+        {% endfor %}
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-area">
+        <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice Input">🎙️</button>
+        <textarea class="chat-input" id="chatInput" rows="1"
+                  placeholder="Ask me anything about skincare..."
+                  onkeydown="handleKey(event)"
+                  oninput="autoResize(this)"></textarea>
+        <button class="send-btn" onclick="sendMessage()" title="Send">➤</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Side Panel ──────────────────────────────────────── -->
+  <div style="display:flex;flex-direction:column;gap:16px;overflow-y:auto;">
+
+    <!-- Voice Status -->
+    <div class="card" style="padding:16px;" id="voiceCard">
+      <div class="card-header" style="margin-bottom:12px;">
+        <span class="card-title">🎙️ Voice Assistant</span>
+      </div>
+      <div style="text-align:center;padding:16px;">
+        <button class="voice-btn" id="voiceBtnLarge" onclick="toggleVoice()"
+                style="width:60px;height:60px;font-size:28px;margin:0 auto;">🎙️</button>
+        <div style="margin-top:12px;font-size:13px;font-weight:600;" id="voiceStatus">
+          Click to speak
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="voiceTranscript">
+          Voice input uses browser's Web Speech API
+        </div>
+      </div>
+      <!-- TTS toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;
+                  padding:10px 0;border-top:1px solid var(--border-light);margin-top:8px;">
+        <span style="font-size:13px;font-weight:500;">🔊 Speak replies</span>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+          <input type="checkbox" id="ttsToggle" style="opacity:0;width:0;height:0;">
+          <span id="ttsSlider" onclick="toggleTTS()"
+            style="position:absolute;inset:0;background:var(--border-light);
+                   border-radius:24px;transition:0.3s;"></span>
+          <span id="ttsThumb"
+            style="position:absolute;left:2px;bottom:2px;width:20px;height:20px;
+                   background:#fff;border-radius:50%;transition:0.3s;"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Suggested Topics -->
+    <div class="card" style="padding:16px;">
+      <div class="card-header" style="margin-bottom:12px;">
+        <span class="card-title">💡 Suggested Topics</span>
+      </div>
+      {% set topics = [
+        ('☀️','Sunscreen guide','Why use SPF daily?'),
+        ('💧','Moisturizer types','Gel vs cream moisturizer'),
+        ('🧴','Cleanser guide','How to choose a cleanser'),
+        ('🔴','Acne help','BHA vs AHA for acne'),
+        ('🌸','Sensitive skin','Products for reactive skin'),
+        ('🧪','Ingredients','What are ceramides?'),
+      ] %}
+      {% for icon, title, prompt in topics %}
+      <div onclick="sendQuick('{{ prompt }}')"
+           style="display:flex;gap:10px;align-items:center;padding:10px;
+                  border-radius:var(--radius-sm);cursor:pointer;transition:all 0.3s;
+                  margin-bottom:6px;"
+           onmouseover="this.style.background='rgba(233,30,140,0.08)'"
+           onmouseout="this.style.background=''">
+        <span style="font-size:20px;flex-shrink:0;">{{ icon }}</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;">{{ title }}</div>
+          <div style="font-size:11px;color:var(--text-muted);">{{ prompt }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Clear Chat -->
+    <button onclick="clearChat()" class="btn btn-ghost btn-sm w-100"
+            style="color:var(--danger);border-color:rgba(244,67,54,0.3);">
+      🗑️ Clear Chat History
+    </button>
+
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+const messagesEl = document.getElementById('chatMessages');
+let ttsEnabled   = false;
+let recognition  = null;
+let isListening  = false;
+
+// ── Send message ─────────────────────────────────────────
+async function sendMessage() {
+  const input   = document.getElementById('chatInput');
+  const message = input.value.trim();
+  if (!message) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  hideQuickReplies();
+
+  appendMessage('user', message);
+  showTyping();
+
+  try {
+    const res = await fetch("{{ url_for('chatbot.message') }}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    const data = await res.json();
+    removeTyping();
+    const reply = data.reply || 'Sorry, I could not process that.';
+    appendMessage('bot', reply);
+    if (ttsEnabled) speak(reply);
+  } catch(e) {
+    removeTyping();
+    appendMessage('bot', '❌ Connection error. Please try again.');
+  }
+}
+
+function sendQuick(text) {
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── Message rendering ────────────────────────────────────
+function appendMessage(role, text) {
+  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = `message ${role === 'user' ? 'user-msg' : 'bot-msg'}`;
+  // Format markdown-like bold
+  const formatted = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'user' ? '👤' : '🧴'}</div>
+    <div>
+      <div class="msg-bubble">${formatted}</div>
+      <div class="msg-time">${now}</div>
+    </div>`;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'message bot-msg'; div.id = 'typingIndicator';
+  div.innerHTML = `<div class="msg-avatar">🧴</div>
+    <div class="msg-bubble" style="padding:14px 18px;">
+      <span style="display:inline-flex;gap:4px;">
+        <span style="width:7px;height:7px;background:var(--primary);border-radius:50%;animation:bounce 1.2s infinite 0s;"></span>
+        <span style="width:7px;height:7px;background:var(--primary);border-radius:50%;animation:bounce 1.2s infinite 0.2s;"></span>
+        <span style="width:7px;height:7px;background:var(--primary);border-radius:50%;animation:bounce 1.2s infinite 0.4s;"></span>
+      </span>
+    </div>`;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function hideQuickReplies() {
+  document.getElementById('quickReplies').style.display = 'none';
+}
+
+// ── Voice Input ──────────────────────────────────────────
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    alert('Voice input not supported in this browser.\nTry Chrome or Edge.');
+    return;
+  }
+  if (isListening) { stopVoice(); return; }
+  startVoice();
+}
+
+function startVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'en-IN';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    isListening = true;
+    setVoiceUI(true);
+  };
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('chatInput').value = transcript;
+    document.getElementById('voiceTranscript').textContent = transcript;
+  };
+  recognition.onend = () => {
+    isListening = false;
+    setVoiceUI(false);
+    const val = document.getElementById('chatInput').value.trim();
+    if (val) sendMessage();
+  };
+  recognition.onerror = () => { isListening = false; setVoiceUI(false); };
+  recognition.start();
+}
+
+function stopVoice() {
+  if (recognition) recognition.stop();
+}
+
+function setVoiceUI(listening) {
+  const btns = [document.getElementById('voiceBtn'), document.getElementById('voiceBtnLarge')];
+  const status = document.getElementById('voiceStatus');
+  btns.forEach(b => { if (b) b.classList.toggle('listening', listening); });
+  if (status) status.textContent = listening ? '🔴 Listening...' : 'Click to speak';
+}
+
+// ── Text-to-Speech ───────────────────────────────────────
+let ttsSliderOn = false;
+function toggleTTS() {
+  ttsSliderOn = !ttsSliderOn;
+  ttsEnabled  = ttsSliderOn;
+  const slider = document.getElementById('ttsSlider');
+  const thumb  = document.getElementById('ttsThumb');
+  if (ttsSliderOn) {
+    slider.style.background = 'var(--primary)';
+    thumb.style.left = '22px';
+  } else {
+    slider.style.background = 'var(--border-light)';
+    thumb.style.left = '2px';
+  }
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/[✅❌⚠️🌞🌙🛒💧🔴🌸🧪☀️💆]/g, '');
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang  = 'en-IN';
+  utt.rate  = 0.95;
+  window.speechSynthesis.speak(utt);
+}
+
+// ── Clear history ────────────────────────────────────────
+async function clearChat() {
+  if (!confirm('Clear all chat history?')) return;
+  await fetch("{{ url_for('chatbot.clear_history') }}", { method: 'POST' });
+  // Keep only welcome message
+  const msgs = messagesEl.querySelectorAll('.message');
+  msgs.forEach((m, i) => { if (i > 0) m.remove(); });
+  document.getElementById('quickReplies').style.display = 'flex';
+}
+
+// Bounce animation for typing indicator
+const style = document.createElement('style');
+style.textContent = `@keyframes bounce {0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}`;
+document.head.appendChild(style);
+
+// Scroll to bottom on load
+messagesEl.scrollTop = messagesEl.scrollHeight;
+</script>
+{% endblock %}
+{% endblock %}

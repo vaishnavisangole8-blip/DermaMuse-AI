@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% block title %}Analysis Results – SkinCare AI{% endblock %}
+{% block page_title %}🧴 Analysis Results{% endblock %}
+
+{% block content %}
+
+<!-- ── TOP: Profile + Overall Score ────────────────────────── -->
+<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);
+            border:1px solid var(--border);border-radius:var(--radius);
+            padding:28px;margin-bottom:24px;
+            display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;"
+     class="animate-in">
+
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+    {% if analysis.image_filename %}
+    <img src="{{ url_for('static', filename='uploads/' + analysis.image_filename) }}"
+         alt="Your face photo"
+         style="width:90px;height:90px;object-fit:cover;border-radius:50%;
+                border:3px solid var(--primary);box-shadow:var(--shadow-pink);">
+    {% else %}
+    <div style="width:90px;height:90px;border-radius:50%;
+                background:linear-gradient(135deg,var(--primary),var(--secondary));
+                display:flex;align-items:center;justify-content:center;font-size:40px;">🌸</div>
+    {% endif %}
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">🌷 Your Skin Profile</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:6px;">{{ analysis.skin_profile or analysis.skin_type }}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="badge badge-primary">{{ analysis.skin_type }}</span>
+        <span class="badge badge-info">☀️ {{ analysis.sun_exposure }} Sun Exposure</span>
+        <span class="badge badge-purple">💰 Budget ₹{{ analysis.budget }}</span>
+        <span class="badge badge-success">{{ analysis.analysis_date.strftime('%d %b %Y') if analysis.analysis_date else '' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overall Score Ring -->
+  <div style="text-align:center;">
+    <div style="position:relative;display:inline-block;">
+      <canvas id="overallDonut" width="120" height="120"></canvas>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:var(--primary-light);">{{ analysis.overall_score }}</div>
+        <div style="font-size:10px;color:var(--text-muted);">/ 100</div>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-top:4px;">Overall Score</div>
+    <div style="font-size:12px;color:var(--text-muted);">Confidence: {{ analysis.confidence }}%</div>
+  </div>
+</div>
+
+<!-- ── SCORE CARDS ─────────────────────────────────────────── -->
+<div class="score-grid animate-in" style="animation-delay:0.1s;">
+  {% set cards = [
+    ('💧','Oiliness',     analysis.oiliness_score,    '#e91e8c'),
+    ('🏜️','Dryness',      analysis.dryness_score,     '#7c4dff'),
+    ('🌡️','Sensitivity',  analysis.sensitivity_score, '#ff9800'),
+    ('🔴','Acne Concern', analysis.concern_score,     '#f44336'),
+    ('🌹','Redness',      analysis.redness_score,     '#e91e8c'),
+    ('🟤','Pigmentation', analysis.pigmentation_score,'#795548'),
+  ] %}
+  {% for icon, label, val, color in cards %}
+  <div class="score-card" style="--accent-color:{{ color }};">
+    <div class="score-icon">{{ icon }}</div>
+    <div class="score-value" style="color:{{ color }};">{{ val }}%</div>
+    <div class="score-label">{{ label }}</div>
+    <div style="margin-top:8px;">
+      <div class="progress-track">
+        <div class="progress-fill score-bar"
+             data-width="{{ val }}"
+             style="width:0%;--fill-start:{{ color }};--fill-end:{{ color }};"></div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ── CHARTS ROW ──────────────────────────────────────────── -->
+<div class="grid-2" style="gap:20px;margin-bottom:24px;">
+  <div class="card animate-in" style="animation-delay:0.15s;">
+    <div class="card-header"><span class="card-title">📊 Score Breakdown</span></div>
+    <canvas id="radarChart" height="260"></canvas>
+  </div>
+  <div class="card animate-in" style="animation-delay:0.2s;">
+    <div class="card-header"><span class="card-title">💰 Budget Breakdown</span></div>
+    <canvas id="budgetChart" height="200"></canvas>
+    <div style="margin-top:16px;background:var(--bg-card2);border-radius:var(--radius-sm);padding:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:var(--text-muted);font-size:13px;">Total Budget</span>
+        <span style="font-weight:700;">₹{{ budget_data.budget }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:var(--text-muted);font-size:13px;">Recommended Total</span>
+        <span style="font-weight:700;color:var(--primary-light);">₹{{ budget_data.used }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border-light);">
+        <span style="color:var(--text-muted);font-size:13px;">Remaining</span>
+        <span style="font-weight:700;color:var(--success);">₹{{ budget_data.remaining }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ROUTINES ────────────────────────────────────────────── -->
+<div class="grid-2" style="gap:20px;margin-bottom:24px;">
+  <!-- Day Routine -->
+  <div class="card animate-in" style="animation-delay:0.25s;">
+    <div class="card-header">
+      <span class="card-title">🌞 Morning Routine</span>
+      <span class="badge badge-warning">Day</span>
+    </div>
+    {% for step in routine.day %}
+    <div class="routine-step">
+      <div class="step-number">{{ step.step }}</div>
+      <div class="step-content">
+        <div class="step-name">{{ step.product }}</div>
+        <div class="step-purpose">{{ step.purpose }}</div>
+        <div class="step-price">{{ step.price_range }}</div>
+      </div>
+    </div>
+    {% endfor %}
+    {% if routine.notes %}
+    <div style="margin-top:12px;padding:12px;background:rgba(255,152,0,0.08);
+                border-radius:var(--radius-sm);border-left:3px solid var(--warning);">
+      <div style="font-size:11px;font-weight:600;color:#ffb74d;margin-bottom:4px;">📋 Note</div>
+      <div style="font-size:12px;color:var(--text-muted);">{{ routine.notes[0] }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Night Routine -->
+  <div class="card animate-in" style="animation-delay:0.3s;">
+    <div class="card-header">
+      <span class="card-title">🌙 Night Routine</span>
+      <span class="badge badge-purple">Night</span>
+    </div>
+    {% for step in routine.night %}
+    <div class="routine-step">
+      <div class="step-number">{{ step.step }}</div>
+      <div class="step-content">
+        <div class="step-name">{{ step.product }}</div>
+        <div class="step-purpose">{{ step.purpose }}</div>
+        <div class="step-price">{{ step.price_range }}</div>
+      </div>
+    </div>
+    {% endfor %}
+    {% if routine.notes and routine.notes|length > 1 %}
+    <div style="margin-top:12px;padding:12px;background:rgba(124,77,255,0.08);
+                border-radius:var(--radius-sm);border-left:3px solid var(--secondary);">
+      <div style="font-size:11px;font-weight:600;color:#b39ddb;margin-bottom:4px;">📋 Note</div>
+      <div style="font-size:12px;color:var(--text-muted);">{{ routine.notes[1] }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── PRODUCT RECOMMENDATIONS ────────────────────────────── -->
+<div class="card animate-in" style="animation-delay:0.35s;margin-bottom:24px;">
+  <div class="card-header">
+    <span class="card-title">🛒 Top Product Recommendations</span>
+    <a href="{{ url_for('products.listing') }}" class="btn btn-ghost btn-sm">View All →</a>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
+    {% for p in products %}
+    <div class="product-card">
+      <div class="product-rank">#{{ loop.index }}</div>
+      <div style="margin-bottom:12px;">
+        <span class="badge badge-info" style="font-size:10px;">{{ p.category }}</span>
+      </div>
+      <div class="product-name">{{ p.name }}</div>
+      <div class="product-brand">{{ p.brand }}</div>
+      <div class="product-price">₹{{ p.price }}</div>
+
+      <div class="product-scores">
+        <span class="score-pill">🎯 Skin {{ p.skin_match }}%</span>
+        <span class="score-pill">🔴 Concern {{ p.concern_match }}%</span>
+        <span class="score-pill">💰 Budget {{ p.budget_match }}%</span>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+        <div class="rating-stars">
+          {% for i in range(5) %}{{ '★' if i < p.rating|int else '☆' }}{% endfor %}
+          <span style="font-size:12px;color:var(--text-muted);"> {{ p.rating }}</span>
+        </div>
+        <div style="background:linear-gradient(135deg,var(--primary),var(--secondary));
+                    color:#fff;font-size:13px;font-weight:700;
+                    padding:4px 12px;border-radius:20px;">
+          {{ p.final_score }}/100
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── BUDGET BREAKDOWN TABLE ─────────────────────────────── -->
+<div class="card animate-in" style="animation-delay:0.4s;margin-bottom:24px;">
+  <div class="card-header">
+    <span class="card-title">💰 Budget Calculation</span>
+    <span class="badge badge-success">Within Budget</span>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th><th>Category</th><th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in budget_data.selected %}
+        <tr>
+          <td style="font-weight:600;">{{ p.name }}</td>
+          <td><span class="badge badge-info">{{ p.category }}</span></td>
+          <td style="font-weight:600;">₹{{ p.price }}</td>
+        </tr>
+        {% endfor %}
+        <tr style="background:rgba(233,30,140,0.06);">
+          <td colspan="2" style="font-weight:700;">Total</td>
+          <td style="font-weight:700;color:var(--primary-light);">₹{{ budget_data.used }}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="color:var(--text-muted);">Budget</td>
+          <td>₹{{ budget_data.budget }}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="color:var(--success);">Remaining</td>
+          <td style="color:var(--success);font-weight:700;">₹{{ budget_data.remaining }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Action buttons ─────────────────────────────────────── -->
+<div style="display:flex;gap:12px;flex-wrap:wrap;" class="animate-in">
+  <a href="{{ url_for('analysis.start') }}" class="btn btn-primary">📸 New Analysis</a>
+  <a href="{{ url_for('products.compare') }}" class="btn btn-secondary">⚖️ Compare Products</a>
+  <a href="{{ url_for('chatbot.chat_page') }}" class="btn btn-ghost">🤖 Ask Chatbot</a>
+  <a href="{{ url_for('history.history') }}" class="btn btn-ghost">📄 View History</a>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Animate score bars
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.querySelectorAll('.score-bar').forEach(bar => {
+      bar.style.width = bar.dataset.width + '%';
+    });
+  }, 400);
+});
+
+// Overall donut
+(function() {
+  const canvas = document.getElementById('overallDonut');
+  const ctx    = canvas.getContext('2d');
+  const score  = {{ analysis.overall_score }};
+  const pct    = score / 100;
+  const cx = 60, cy = 60, r = 48, lw = 10;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,2*Math.PI);
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=lw; ctx.stroke();
+  const g = ctx.createLinearGradient(0,0,120,120);
+  g.addColorStop(0,'#e91e8c'); g.addColorStop(1,'#7c4dff');
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+2*Math.PI*pct);
+  ctx.strokeStyle=g; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.stroke();
+})();
+
+// Radar chart
+(function() {
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: ['Oiliness','Dryness','Sensitivity','Acne','Redness','Pigmentation'],
+      datasets: [{
+        label: 'Your Scores',
+        data: [
+          {{ analysis.oiliness_score }}, {{ analysis.dryness_score }},
+          {{ analysis.sensitivity_score }}, {{ analysis.concern_score }},
+          {{ analysis.redness_score }}, {{ analysis.pigmentation_score }}
+        ],
+        backgroundColor: 'rgba(233,30,140,0.15)',
+        borderColor: '#e91e8c',
+        pointBackgroundColor: '#e91e8c',
+        pointBorderColor: '#fff',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          min: 0, max: 100,
+          ticks: { display: false },
+          grid:  { color: 'rgba(255,255,255,0.08)' },
+          pointLabels: { color: '#9e9e9e', font: { size: 11 } }
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+})();
+
+// Budget doughnut
+(function() {
+  new Chart(document.getElementById('budgetChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Used','Remaining'],
+      datasets: [{
+        data: [{{ budget_data.used }}, {{ budget_data.remaining }}],
+        backgroundColor: ['rgba(233,30,140,0.8)','rgba(255,255,255,0.08)'],
+        borderColor:     ['#e91e8c','rgba(255,255,255,0.1)'],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      cutout: '72%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#9e9e9e', font: { size: 12 } } },
+        tooltip: { callbacks: { label: c => ` ₹${c.parsed}` } }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}
+{% endblock %}

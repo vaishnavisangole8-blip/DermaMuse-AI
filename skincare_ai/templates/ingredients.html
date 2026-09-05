@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Ingredient Analyzer – SkinCare AI{% endblock %}
+{% block page_title %}🧪 Ingredient Analyzer{% endblock %}
+
+{% block content %}
+
+<!-- Search -->
+<div class="card animate-in" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title">🔍 Search an Ingredient</span>
+  </div>
+  <form method="POST" action="{{ url_for('products.ingredients') }}" id="ingForm">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;">
+        <input type="text" name="ingredient" class="form-control"
+               placeholder="e.g. Niacinamide, Vitamin C, Hyaluronic Acid..."
+               value="{{ search_term }}" list="ingredientList" autocomplete="off"
+               id="ingInput">
+        <datalist id="ingredientList">
+          {% for ing in all_ingredients %}
+          <option value="{{ ing }}">
+          {% endfor %}
+        </datalist>
+      </div>
+      <button type="submit" class="btn btn-primary">🔍 Analyze</button>
+    </div>
+  </form>
+
+  <!-- Quick chips -->
+  <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;">
+    <span style="font-size:12px;color:var(--text-muted);line-height:28px;">Quick search:</span>
+    {% for chip in ['Niacinamide','Vitamin C','Hyaluronic Acid','Salicylic Acid',
+                     'Ceramides','Retinol','Glycolic Acid','Aloe Vera'] %}
+    <button type="button" class="quick-reply-btn" onclick="quickSearch('{{ chip }}')">{{ chip }}</button>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Result -->
+{% if ingredient_data %}
+<div class="card animate-in ingredient-result" style="margin-bottom:24px;animation-delay:0.1s;">
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+
+    <!-- Left: name + ring -->
+    <div style="text-align:center;min-width:140px;">
+      <div class="ingredient-compat-ring"
+           style="--pct:{{ ingredient_data.compatibility }}%;">
+        <div class="ingredient-compat-value">{{ ingredient_data.compatibility }}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Compatibility</div>
+      <div style="font-size:11px;color:var(--text-dark);">/ 100</div>
+    </div>
+
+    <!-- Right: details -->
+    <div style="flex:1;min-width:240px;">
+      <div class="ingredient-name">{{ ingredient_data.name }}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
+
+        <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:14px;">
+          <div style="font-size:11px;font-weight:600;color:var(--primary-light);margin-bottom:6px;">
+            ✅ Common Use
+          </div>
+          <div style="font-size:13px;color:var(--text-primary);">{{ ingredient_data.common_use }}</div>
+        </div>
+
+        <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:14px;">
+          <div style="font-size:11px;font-weight:600;color:#81c784;margin-bottom:6px;">
+            💚 Suitable For
+          </div>
+          <div style="font-size:13px;color:var(--text-primary);">{{ ingredient_data.suitable_for }}</div>
+        </div>
+
+        <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:14px;">
+          <div style="font-size:11px;font-weight:600;color:#ef9a9a;margin-bottom:6px;">
+            ⚠️ Caution / Avoid If
+          </div>
+          <div style="font-size:13px;color:var(--text-primary);">
+            {{ ingredient_data.avoid_for or 'No major contraindications for most skin types.' }}
+          </div>
+        </div>
+
+        <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:14px;">
+          <div style="font-size:11px;font-weight:600;color:#64b5f6;margin-bottom:6px;">
+            📊 Compatibility Score
+          </div>
+          <div style="font-size:24px;font-weight:700;color:
+            {% if ingredient_data.compatibility >= 85 %}var(--success)
+            {% elif ingredient_data.compatibility >= 70 %}var(--warning)
+            {% else %}var(--danger){% endif %};">
+            {{ ingredient_data.compatibility }}/100
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);">
+            {% if ingredient_data.compatibility >= 85 %}Excellent compatibility
+            {% elif ingredient_data.compatibility >= 70 %}Good compatibility
+            {% else %}Use with caution{% endif %}
+          </div>
+        </div>
+
+      </div>
+
+      {% if ingredient_data.description %}
+      <div style="margin-top:14px;padding:16px;background:var(--bg-card);
+                  border-radius:var(--radius-sm);border-left:3px solid var(--primary);
+                  font-size:13px;color:var(--text-muted);line-height:1.7;">
+        {{ ingredient_data.description }}
+      </div>
+      {% endif %}
+
+      <div style="margin-top:16px;padding:12px;background:rgba(244,67,54,0.06);
+                  border-radius:var(--radius-sm);border-left:3px solid var(--danger);
+                  font-size:12px;color:#ef9a9a;">
+        ⚠️ <strong>Disclaimer:</strong> This information is for general skincare education only.
+        It does not constitute medical advice. Always patch-test new ingredients and
+        consult a dermatologist for skin conditions.
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Knowledge Base Grid -->
+<div class="card animate-in" style="animation-delay:0.15s;">
+  <div class="card-header">
+    <span class="card-title">📚 Ingredient Knowledge Base</span>
+    <span class="badge badge-info">{{ all_ingredients|length }} ingredients</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">
+    {% set kb = [
+      ('Niacinamide',     88, 'Oil control, pores',   '#e91e8c', 'Oily / Combination'),
+      ('Vitamin C',       85, 'Brightening, antioxidant','#ff9800','Normal / Dry'),
+      ('Hyaluronic Acid', 95, 'Deep hydration',       '#2196f3', 'All types'),
+      ('Salicylic Acid',  82, 'Acne, pore clearing',  '#7c4dff', 'Oily / Acne-prone'),
+      ('Ceramides',       92, 'Barrier repair',       '#4caf50', 'Dry / Sensitive'),
+      ('Retinol',         78, 'Anti-aging, turnover', '#795548', 'Normal / Combination'),
+      ('Glycolic Acid',   80, 'Exfoliation, texture', '#9c27b0', 'Normal / Oily'),
+      ('Aloe Vera',       90, 'Soothing, calming',    '#00bcd4', 'Sensitive / All'),
+      ('Centella Asiatica',91,'Soothing, healing',    '#8bc34a', 'Sensitive / Acne'),
+      ('Benzoyl Peroxide',75, 'Bacteria, acne',       '#f44336', 'Oily / Acne-prone'),
+    ] %}
+    {% for name, score, use, color, suitable in kb %}
+    <div style="background:var(--bg-card2);border:1px solid var(--border-light);
+                border-radius:var(--radius-sm);padding:14px;cursor:pointer;
+                transition:all 0.3s;border-top:3px solid {{ color }};"
+         onclick="quickSearch('{{ name }}')"
+         onmouseover="this.style.borderColor='{{ color }}';this.style.transform='translateY(-2px)';"
+         onmouseout="this.style.borderColor='var(--border-light)';this.style.borderTopColor='{{ color }}';this.style.transform='';">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;color:{{ color }};">{{ name }}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">{{ use }}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:10px;color:var(--text-dark);">{{ suitable }}</span>
+        <span style="font-size:13px;font-weight:700;color:{{ color }};">{{ score }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+function quickSearch(name) {
+  document.getElementById('ingInput').value = name;
+  document.getElementById('ingForm').submit();
+}
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}SkinCare AI{% endblock %}</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+    {% block head %}{% endblock %}
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     TOP NAVBAR
+========================================================= -->
+
+<header class="main-navbar">
+
+
+    <!-- LOGO -->
+
+    <a href="{{ url_for('main.dashboard') }}"
+       class="brand-logo">
+
+        <div class="brand-symbol">
+            D
+        </div>
+
+        <div class="brand-name">
+            <span>DermaMuse</span>
+            <small>AI SKINCARE</small>
+        </div>
+
+    </a>
+
+
+    <!-- MAIN NAVIGATION -->
+
+    <nav class="main-nav">
+
+        <a href="{{ url_for('main.dashboard') }}">
+            HOME
+        </a>
+
+        <a href="{{ url_for('analysis.start') }}">
+            AI ANALYSIS
+        </a>
+
+        <a href="{{ url_for('products.listing') }}">
+            PRODUCTS
+        </a>
+
+        <a href="{{ url_for('products.ingredients') }}">
+            INGREDIENTS
+        </a>
+
+        <a href="{{ url_for('chatbot.chat_page') }}">
+            AI ASSISTANT
+        </a>
+
+    </nav>
+
+
+    <!-- SEARCH -->
+
+    <div class="navbar-search">
+
+        <span class="search-icon">
+            ⌕
+        </span>
+
+        <input
+            type="text"
+            placeholder="Search products, ingredients and more..."
+            id="globalSearch"
+        >
+
+    </div>
+
+
+    <!-- NAV ACTIONS -->
+
+    <div class="navbar-actions">
+
+        <a href="{{ url_for('main.dashboard') }}"
+           class="nav-action">
+
+            <span>♙</span>
+
+            <small>
+                Profile
+            </small>
+
+        </a>
+
+
+        <a href="{{ url_for('products.compare') }}"
+           class="nav-action">
+
+            <span>♡</span>
+
+            <small>
+                Compare
+            </small>
+
+        </a>
+
+
+        <a href="{{ url_for('products.listing') }}"
+           class="nav-action">
+
+            <span>🛍</span>
+
+            <small>
+                Products
+            </small>
+
+        </a>
+
+    </div>
+
+</header>
+
+
+
+<!-- =========================================================
+     CATEGORY BAR
+========================================================= -->
+
+<div class="category-bar">
+
+
+    <!-- ALL SKINCARE -->
+
+    <a href="{{ url_for('products.listing') }}">
+        SKINCARE
+    </a>
+
+
+    <!-- SKIN ANALYSIS -->
+
+    <a href="{{ url_for('analysis.start') }}">
+        SKIN ANALYSIS
+    </a>
+
+
+    <!-- ONLY CLEANSERS -->
+
+    <a href="{{ url_for('products.listing', category='Cleanser') }}">
+        CLEANSERS
+    </a>
+
+
+    <!-- ONLY SERUMS -->
+
+    <a href="{{ url_for('products.listing', category='Serum') }}">
+        SERUMS
+    </a>
+
+
+    <!-- ONLY MOISTURIZERS -->
+
+    <a href="{{ url_for('products.listing', category='Moisturizer') }}">
+        MOISTURIZERS
+    </a>
+
+
+    <!-- ONLY SUNSCREEN -->
+
+    <a href="{{ url_for('products.listing', category='Sunscreen') }}">
+        SUNSCREEN
+    </a>
+
+
+    <!-- INGREDIENTS -->
+
+    <a href="{{ url_for('products.ingredients') }}">
+        INGREDIENTS
+    </a>
+
+
+    <!-- COMPARE -->
+
+    <a href="{{ url_for('products.compare') }}">
+        COMPARE
+    </a>
+
+
+    <!-- AI EXPERT -->
+
+    <a href="{{ url_for('chatbot.chat_page') }}">
+        AI EXPERT
+    </a>
+
+</div>
+
+
+
+<!-- =========================================================
+     FLASH MESSAGES
+========================================================= -->
+
+<div class="flash-container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+
+        {% if messages %}
+
+            {% for category, message in messages %}
+
+                <div class="alert alert-{{ category }}">
+
+                    {% if category == 'success' %}
+
+                        ✓
+
+                    {% elif category == 'danger' %}
+
+                        ✕
+
+                    {% elif category == 'warning' %}
+
+                        !
+
+                    {% else %}
+
+                        i
+
+                    {% endif %}
+
+
+                    <span>
+                        {{ message }}
+                    </span>
+
+
+                    <button
+                        onclick="this.parentElement.remove()">
+
+                        ×
+
+                    </button>
+
+                </div>
+
+            {% endfor %}
+
+        {% endif %}
+
+    {% endwith %}
+
+</div>
+
+
+
+<!-- =========================================================
+     PAGE CONTENT
+========================================================= -->
+
+<main class="site-content">
+
+    {% block content %}
+
+    {% endblock %}
+
+</main>
+
+
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
+
+<footer class="site-footer">
+
+
+    <!-- FOOTER BRAND -->
+
+    <div class="footer-brand">
+
+        <div class="footer-logo">
+            D
+        </div>
+
+        <div>
+
+            <strong>
+                DermaMuse AI
+            </strong>
+
+            <p>
+                Intelligent skincare recommendations
+                powered by AI.
+            </p>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- FOOTER LINKS -->
+
+    <div class="footer-links">
+
+
+        <a href="{{ url_for('main.dashboard') }}">
+            Home
+        </a>
+
+
+        <a href="{{ url_for('analysis.start') }}">
+            Skin Analysis
+        </a>
+
+
+        <a href="{{ url_for('products.listing') }}">
+            Products
+        </a>
+
+
+        <a href="{{ url_for('products.ingredients') }}">
+            Ingredients
+        </a>
+
+
+        <a href="{{ url_for('products.compare') }}">
+            Compare
+        </a>
+
+
+        <a href="{{ url_for('chatbot.chat_page') }}">
+            AI Assistant
+        </a>
+
+
+        <a href="{{ url_for('history.history') }}">
+            History
+        </a>
+
+
+        <a href="{{ url_for('auth.logout') }}">
+            Logout
+        </a>
+
+    </div>
+
+
+
+    <!-- COPYRIGHT -->
+
+    <div class="footer-bottom">
+
+        © 2026 DermaMuse AI.
+        Smart skincare, made personal.
+
+    </div>
+
+</footer>
+
+
+
+<!-- =========================================================
+     MOBILE MENU
+========================================================= -->
+
+<div class="mobile-menu"
+     id="mobileMenu">
+
+
+    <button
+        onclick="toggleMobileMenu()"
+        class="mobile-close">
+
+        ×
+
+    </button>
+
+
+    <a href="{{ url_for('main.dashboard') }}">
+        HOME
+    </a>
+
+
+    <a href="{{ url_for('analysis.start') }}">
+        AI ANALYSIS
+    </a>
+
+
+    <a href="{{ url_for('products.listing') }}">
+        PRODUCTS
+    </a>
+
+
+    <a href="{{ url_for('products.ingredients') }}">
+        INGREDIENTS
+    </a>
+
+
+    <a href="{{ url_for('products.compare') }}">
+        COMPARE
+    </a>
+
+
+    <a href="{{ url_for('chatbot.chat_page') }}">
+        AI ASSISTANT
+    </a>
+
+
+    <a href="{{ url_for('history.history') }}">
+        HISTORY
+    </a>
+
+
+    <a href="{{ url_for('auth.logout') }}">
+        LOGOUT
+    </a>
+
+</div>
+
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script>
+
+
+/* =========================================================
+   MOBILE MENU
+========================================================= */
+
+function toggleMobileMenu() {
+
+    const menu =
+        document.getElementById("mobileMenu");
+
+    if (menu) {
+
+        menu.classList.toggle("active");
+
+    }
+
+}
+
+
+
+/* =========================================================
+   FLASH MESSAGE AUTO CLOSE
+========================================================= */
+
+setTimeout(() => {
+
+    document
+        .querySelectorAll(".alert")
+        .forEach(alert => {
+
+            alert.style.opacity = "0";
+
+            setTimeout(() => {
+
+                alert.remove();
+
+            }, 400);
+
+        });
+
+}, 5000);
+
+
+
+/* =========================================================
+   GLOBAL SEARCH
+========================================================= */
+
+const search =
+    document.getElementById("globalSearch");
+
+
+if (search) {
+
+    search.addEventListener(
+        "keypress",
+        function(event) {
+
+            if (event.key === "Enter") {
+
+                const value =
+                    this.value.trim();
+
+
+                if (value) {
+
+                    window.location.href =
+                        "{{ url_for('products.listing') }}" +
+                        "?search=" +
+                        encodeURIComponent(value);
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+</script>
+
+
+
+{% block scripts %}
+
+{% endblock %}
+
+
+</body>
+
+</html>

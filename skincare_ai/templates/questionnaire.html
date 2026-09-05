@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}New Skin Analysis{% endblock %}
+{% block page_title %}📸 New Skin Analysis{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('analysis.start') }}"
+      enctype="multipart/form-data" id="analysisForm">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- ── LEFT: Photo Upload ─────────────────────────── -->
+    <div>
+      <div class="card animate-in">
+        <div class="card-header">
+          <span class="card-title">📸 Face Photo</span>
+          <span class="badge badge-info">Optional</span>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="photo-upload-area" id="uploadArea"
+             onclick="document.getElementById('photoInput').click()"
+             ondragover="handleDrag(event)" ondrop="handleDrop(event)">
+          <div id="uploadPlaceholder">
+            <div class="upload-icon">🤳</div>
+            <div class="upload-text">Upload or Capture Photo</div>
+            <div class="upload-hint">Drag & drop · Click to browse · JPG, PNG, WEBP</div>
+            <div class="upload-hint" style="margin-top:6px;color:var(--success);">
+              ✅ Photo optional hai — bina photo ke bhi analysis hogi
+            </div>
+          </div>
+
+          <div id="photo-preview-wrap" style="display:none;">
+            <img id="photo-preview" src="" alt="Preview">
+            <button type="button" class="preview-remove" onclick="removePhoto(event)">✕</button>
+          </div>
+        </div>
+
+        <input type="file" id="photoInput" name="photo"
+               accept="image/jpeg,image/png,image/webp"
+               style="display:none;" onchange="previewPhoto(event)">
+
+        <!-- Camera capture -->
+        <div style="margin-top:12px;display:flex;gap:10px;">
+          <button type="button" class="btn btn-ghost btn-sm w-100" onclick="openCamera()">
+            📷 Use Camera
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm w-100"
+                  onclick="document.getElementById('photoInput').click()">
+            🖼️ Upload File
+          </button>
+        </div>
+
+        <!-- Camera modal -->
+        <div id="cameraModal" style="display:none;margin-top:16px;border-radius:var(--radius);overflow:hidden;">
+          <video id="cameraFeed" autoplay playsinline
+                 style="width:100%;border-radius:var(--radius-sm);"></video>
+          <canvas id="cameraCanvas" style="display:none;"></canvas>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button type="button" class="btn btn-primary btn-sm w-100" onclick="capturePhoto()">
+              📸 Capture
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm w-100" onclick="closeCamera()">
+              ✕ Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Tips -->
+        <div style="margin-top:16px;background:var(--bg-card2);border-radius:var(--radius-sm);
+                    padding:14px;border:1px solid var(--border-light);">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--primary-light);">
+            📋 Photo Tips for Better Results
+          </div>
+          <ul style="font-size:12px;color:var(--text-muted);list-style:none;display:flex;flex-direction:column;gap:4px;">
+            <li>✅ Good natural lighting</li>
+            <li>✅ Face centered, no sunglasses</li>
+            <li>✅ Clean face — no heavy makeup</li>
+            <li>✅ Neutral expression, camera-facing</li>
+            <li>❌ Avoid harsh shadows or flash glare</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Questionnaire ───────────────────────── -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Skin Type -->
+      <div class="card animate-in" style="animation-delay:0.1s;">
+        <div class="card-header">
+          <span class="card-title">🌿 Skin Type</span>
+        </div>
+        <div class="skin-type-grid">
+          {% set types = [('Normal','🌸','Balanced skin'),('Dry','🏜️','Tight, flaky'),('Oily','💧','Shiny, greasy'),('Combination','☯️','Mixed zones')] %}
+          {% for value, icon, desc in types %}
+          <div class="skin-type-option">
+            <input type="radio" name="skin_type" id="st_{{ value }}"
+                   value="{{ value }}" {% if value == 'Normal' %}checked{% endif %}>
+            <label class="skin-type-label" for="st_{{ value }}">
+              <span class="type-icon">{{ icon }}</span>
+              <span class="type-name">{{ value }}</span>
+              <span style="font-size:10px;color:var(--text-dark);">{{ desc }}</span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Sliders -->
+      <div class="card animate-in" style="animation-delay:0.15s;">
+        <div class="card-header">
+          <span class="card-title">🎚️ Skin Concerns (0 = Low, 10 = High)</span>
+        </div>
+
+        {% set sliders = [
+          ('q_oiliness',    '💧 Oiliness Level',   'How oily does your skin feel?',  '#e91e8c', '#f48fb1'),
+          ('q_dryness',     '🏜️ Dryness Level',    'How dry or tight does skin feel?','#7c4dff','#b39ddb'),
+          ('q_sensitivity', '🌡️ Sensitivity',      'How reactive is your skin?',     '#ff9800','#ffcc02'),
+          ('q_acne_concern','🔴 Acne Concern',      'How much does acne bother you?', '#f44336','#ef9a9a'),
+        ] %}
+
+        {% for name, label, hint, c1, c2 in sliders %}
+        <div class="progress-item" style="margin-bottom:20px;">
+          <div class="progress-header">
+            <span>{{ label }}</span>
+            <span class="range-value-display" id="val_{{ name }}">5</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-dark);margin-bottom:8px;">{{ hint }}</div>
+          <input type="range" name="{{ name }}" id="{{ name }}"
+                 class="form-range" min="0" max="10" value="5"
+                 style="--fill-start:{{ c1 }};--fill-end:{{ c2 }};"
+                 oninput="updateSlider('{{ name }}')">
+          <div style="display:flex;justify-content:space-between;
+                      font-size:10px;color:var(--text-dark);margin-top:4px;">
+            <span>0 — None</span><span>5 — Moderate</span><span>10 — Severe</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Sun Exposure + Budget -->
+      <div class="card animate-in" style="animation-delay:0.2s;">
+        <div class="card-header">
+          <span class="card-title">☀️ Lifestyle & Budget</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">☀️ Daily Sun Exposure</label>
+          <div style="display:flex;gap:10px;">
+            {% for level in ['Low', 'Medium', 'High'] %}
+            <label style="flex:1;text-align:center;">
+              <input type="radio" name="sun_exposure" value="{{ level }}"
+                     {% if level == 'Medium' %}checked{% endif %}
+                     style="display:none;" class="sun-radio">
+              <div class="sun-btn" data-val="{{ level }}"
+                   onclick="selectSun('{{ level }}')"
+                   style="padding:10px 6px;border-radius:var(--radius-sm);border:2px solid var(--border-light);
+                          cursor:pointer;font-size:12px;font-weight:600;transition:all 0.3s;
+                          {% if level == 'Medium' %}border-color:var(--primary);background:rgba(233,30,140,0.1);{% endif %}">
+                {{ '🌤️' if level == 'Low' else ('☀️' if level == 'Medium' else '🌞') }}<br>{{ level }}
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">💰 Skincare Budget (INR)</label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+            {% for amt, label in [(500,'₹500'),(1000,'₹1000'),(1500,'₹1500'),(2000,'₹2000+')] %}
+            <label>
+              <input type="radio" name="budget" value="{{ amt }}"
+                     {% if amt == 1500 %}checked{% endif %}
+                     style="display:none;" class="budget-radio">
+              <div class="budget-btn" data-val="{{ amt }}"
+                   onclick="selectBudget({{ amt }})"
+                   style="padding:10px 4px;border-radius:var(--radius-sm);border:2px solid var(--border-light);
+                          cursor:pointer;font-size:13px;font-weight:600;text-align:center;transition:all 0.3s;
+                          {% if amt == 1500 %}border-color:var(--primary);background:rgba(233,30,140,0.1);{% endif %}">
+                {{ label }}
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="btn btn-primary btn-block btn-lg" id="analyzeBtn"
+              style="font-size:17px;padding:16px;">
+        🤖 Analyze My Skin
+      </button>
+
+      <p style="text-align:center;font-size:11px;color:var(--text-dark);">
+        ⚠️ This is a general skincare analysis tool, not a medical diagnosis.
+        For skin conditions, please consult a dermatologist.
+      </p>
+    </div>
+  </div>
+</form>
+
+{% block scripts %}
+<script>
+// ── Slider value display ────────────────────────────────
+function updateSlider(name) {
+  const val = document.getElementById(name).value;
+  document.getElementById('val_' + name).textContent = val;
+}
+
+// ── Sun exposure selection ──────────────────────────────
+function selectSun(level) {
+  document.querySelectorAll('.sun-btn').forEach(b => {
+    b.style.borderColor = 'var(--border-light)';
+    b.style.background  = 'transparent';
+  });
+  const chosen = document.querySelector(`.sun-btn[data-val="${level}"]`);
+  chosen.style.borderColor = 'var(--primary)';
+  chosen.style.background  = 'rgba(233,30,140,0.1)';
+  // Update actual radio
+  document.querySelectorAll('.sun-radio').forEach(r => {
+    r.checked = (r.value === level);
+  });
+}
+
+// ── Budget selection ────────────────────────────────────
+function selectBudget(amt) {
+  document.querySelectorAll('.budget-btn').forEach(b => {
+    b.style.borderColor = 'var(--border-light)';
+    b.style.background  = 'transparent';
+  });
+  const chosen = document.querySelector(`.budget-btn[data-val="${amt}"]`);
+  chosen.style.borderColor = 'var(--primary)';
+  chosen.style.background  = 'rgba(233,30,140,0.1)';
+  document.querySelectorAll('.budget-radio').forEach(r => {
+    r.checked = (parseInt(r.value) === amt);
+  });
+}
+
+// ── Photo preview ───────────────────────────────────────
+function previewPhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => showPreview(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+function showPreview(src) {
+  document.getElementById('uploadPlaceholder').style.display = 'none';
+  const wrap = document.getElementById('photo-preview-wrap');
+  wrap.style.display = 'block';
+  document.getElementById('photo-preview').src = src;
+}
+
+function removePhoto(e) {
+  e.stopPropagation();
+  document.getElementById('photoInput').value = '';
+  document.getElementById('photo-preview-wrap').style.display = 'none';
+  document.getElementById('uploadPlaceholder').style.display = 'block';
+  closeCamera();
+}
+
+// ── Drag & Drop ─────────────────────────────────────────
+function handleDrag(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').classList.add('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('photoInput').files = dt.files;
+    const reader = new FileReader();
+    reader.onload = ev => showPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  }
+}
+
+// ── Camera ──────────────────────────────────────────────
+let stream = null;
+
+async function openCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    document.getElementById('cameraFeed').srcObject = stream;
+    document.getElementById('cameraModal').style.display = 'block';
+    document.getElementById('uploadArea').style.pointerEvents = 'none';
+  } catch(err) {
+    alert('Camera access denied or not available.\nPlease upload a photo instead.');
+  }
+}
+
+function capturePhoto() {
+  const video  = document.getElementById('cameraFeed');
+  const canvas = document.getElementById('cameraCanvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  canvas.toBlob(blob => {
+    const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+    const dt   = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('photoInput').files = dt.files;
+    showPreview(canvas.toDataURL('image/jpeg'));
+    closeCamera();
+  }, 'image/jpeg', 0.92);
+}
+
+function closeCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  document.getElementById('cameraModal').style.display = 'none';
+  document.getElementById('uploadArea').style.pointerEvents = 'auto';
+}
+
+// ── Form submit ─────────────────────────────────────────
+document.getElementById('analysisForm').addEventListener('submit', function(e) {
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('analyzeBtn').textContent = '⏳ Analyzing...';
+  document.getElementById('analyzing-overlay').classList.add('active');
+
+  const texts = ['Detecting skin features...','Analyzing questionnaire...','Calculating scores...','Generating your report...'];
+  let i = 0;
+  setInterval(() => {
+    document.getElementById('analyzing-text').textContent = texts[i % texts.length];
+    i++;
+  }, 1800);
+});
+</script>
+{% endblock %}
+{% endblock %}
