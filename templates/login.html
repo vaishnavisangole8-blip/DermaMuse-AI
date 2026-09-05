@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In – SkinCare AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+<div class="auth-wrapper">
+
+  <!-- Left Panel -->
+  <div class="auth-left">
+    <div class="auth-left-content">
+      <div style="font-size:40px;margin-bottom:20px;">🌿</div>
+      <h2>Your Skin,<br>Understood.</h2>
+      <p>AI-powered skin analysis that gives you personalized routines and product recommendations based on your unique skin profile.</p>
+
+      <div class="auth-features">
+        <div class="auth-feature">
+          <div class="auth-feature-icon">📸</div>
+          <span>Photo or questionnaire-based analysis</span>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon">🧴</div>
+          <span>Personalized day & night routines</span>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon">🛒</div>
+          <span>Budget-friendly product picks</span>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon">🤖</div>
+          <span>AI chatbot with voice assistant</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h1>Welcome back</h1>
+        <p>Sign in to continue your skincare journey</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" name="email" class="form-control"
+                 placeholder="you@example.com" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div style="position:relative;">
+            <input type="password" name="password" id="passwordField"
+                   class="form-control" placeholder="Enter your password"
+                   required style="padding-right:44px;">
+            <button type="button" onclick="togglePass()"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                     background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;"
+              id="eyeBtn">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn"
+                style="margin-top:8px;">
+          Sign In →
+        </button>
+      </form>
+
+      <div class="divider">or</div>
+
+      <a href="{{ url_for('auth.register') }}" class="btn btn-outline btn-block">
+        Create Account
+      </a>
+
+      <p style="text-align:center;margin-top:24px;font-size:11.5px;color:var(--text-light);">
+        Face photos are processed securely and not shared with third parties.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function togglePass() {
+  const f = document.getElementById('passwordField');
+  const b = document.getElementById('eyeBtn');
+  if (f.type === 'password') { f.type = 'text'; b.textContent = '🙈'; }
+  else { f.type = 'password'; b.textContent = '👁'; }
+}
+document.getElementById('loginForm').addEventListener('submit', function() {
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = 'Signing in...';
+  btn.disabled = true;
+});
+</script>
+</body>
+</html>

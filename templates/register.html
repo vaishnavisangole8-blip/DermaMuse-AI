@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account – SkinCare AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+<div class="auth-wrapper">
+
+  <!-- Left Panel -->
+  <div class="auth-left">
+    <div class="auth-left-content">
+      <div style="font-size:40px;margin-bottom:20px;">🌿</div>
+      <h2>Start Your<br>Skin Journey.</h2>
+      <p>Join thousands of users who have discovered their personalized skincare routine using AI analysis.</p>
+
+      <div class="auth-features">
+        <div class="auth-feature">
+          <div class="auth-feature-icon">📊</div>
+          <span>Detailed skin scores & analysis</span>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon">🌞</div>
+          <span>Morning & night routine builder</span>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon">💰</div>
+          <span>Products within your budget</span>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon">📄</div>
+          <span>Track progress over time</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="auth-right">
+    <div class="auth-card" style="max-width:420px;">
+      <div class="auth-logo">
+        <h1>Create account</h1>
+        <p>Begin your personalized skincare experience</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.register') }}" id="regForm">
+
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" name="name" class="form-control"
+                 placeholder="Your full name" required minlength="2" maxlength="100">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" name="email" class="form-control"
+                 placeholder="you@example.com" required>
+        </div>
+
+        <div class="grid-2" style="gap:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" id="pw1"
+                   class="form-control" placeholder="Min 6 chars"
+                   required minlength="6" oninput="checkStrength(this.value)">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Confirm</label>
+            <input type="password" name="confirm_password" id="pw2"
+                   class="form-control" placeholder="Repeat" required>
+          </div>
+        </div>
+
+        <!-- Strength bar -->
+        <div style="margin-top:8px;margin-bottom:16px;">
+          <div class="progress-track">
+            <div class="progress-fill" id="strengthBar" style="width:0%;"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="strengthText"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Age Group</label>
+          <select name="age_group" class="form-control">
+            <option value="13-17">13–17</option>
+            <option value="18-24" selected>18–24</option>
+            <option value="25-34">25–34</option>
+            <option value="35-44">35–44</option>
+            <option value="45+">45+</option>
+          </select>
+        </div>
+
+        <div style="background:var(--bg-card2);border:1px solid var(--border);
+                    border-radius:var(--radius-sm);padding:12px;margin-bottom:20px;
+                    font-size:12px;color:var(--text-muted);display:flex;gap:10px;align-items:flex-start;">
+          <input type="checkbox" id="consent" required style="margin-top:2px;accent-color:var(--primary);">
+          <label for="consent">
+            I consent to my face photos being used for skin analysis only.
+            Photos are not shared with third parties and can be deleted anytime.
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="regBtn">
+          Create Account →
+        </button>
+      </form>
+
+      <div class="divider">already have an account?</div>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-block">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function checkStrength(pw) {
+  const bar  = document.getElementById('strengthBar');
+  const text = document.getElementById('strengthText');
+  let score = 0;
+  if (pw.length >= 6)  score++;
+  if (pw.length >= 10) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels = [
+    {w:'0%',  c:'#c0392b', l:''},
+    {w:'20%', c:'#c0392b', l:'Weak'},
+    {w:'40%', c:'#e67e22', l:'Fair'},
+    {w:'65%', c:'#f1c40f', l:'Good'},
+    {w:'85%', c:'#2ecc71', l:'Strong'},
+    {w:'100%',c:'#27ae60', l:'Excellent'},
+  ];
+  const lv = levels[score] || levels[0];
+  bar.style.width = lv.w;
+  bar.style.background = lv.c;
+  text.textContent = lv.l ? `Strength: ${lv.l}` : '';
+  text.style.color = lv.c;
+}
+
+document.getElementById('regForm').addEventListener('submit', function(e) {
+  if (document.getElementById('pw1').value !== document.getElementById('pw2').value) {
+    e.preventDefault(); alert('Passwords do not match!'); return;
+  }
+  const btn = document.getElementById('regBtn');
+  btn.textContent = 'Creating account...'; btn.disabled = true;
+});
+</script>
+</body>
+</html>
