@@ -10,7 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://dermamuse-ai.onrender.com">
+
+  <a href="https://dermamuse-ai.onrender.com?utm_source=chatgpt.com">
     🌐 Live Demo
   </a>
 </p>
